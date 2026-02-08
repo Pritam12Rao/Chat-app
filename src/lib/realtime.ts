@@ -7,7 +7,7 @@ const message = z.object({
   sender: z.string(),
   text: z.string(),
   timestamp: z.number(),
-  roomid: z.string(),
+  roomId: z.string(),
   token: z.string().optional(),
 });
 

@@ -3,6 +3,7 @@ import { Elysia, t } from "elysia";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { authMiddleware } from "./auth";
+import { Message, realtime } from "@/lib/realtime";
 
 const ROOM_TTL_SECONDS = 60*10;
 
@@ -38,6 +39,17 @@ const messages = new Elysia({prefix: "/messages"}).use(authMiddleware).post(
             timestamp: Date.now(),
             roomId,
         }
+
+        //add message to history
+        await redis.rpush(`messages:${roomId}`,
+        {...message, token: auth.token})
+        await realtime.channel(roomId).emit("chat.message" , message)
+
+        const remaining = await redis.ttl(`meta:${roomId}`)
+
+        await redis.expire(`messages:${roomId}` , remaining)
+        await redis.expire(`history:${roomId}` , remaining)
+        await redis.expire(roomId,remaining)
     },
     {
         query: z.object({roomId: z.string()}),
